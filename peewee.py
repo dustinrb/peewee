@@ -1175,7 +1175,6 @@ class ColumnBase(Node):
     __le__ = _e(OP.LTE)
     __gt__ = _e(OP.GT)
     __ge__ = _e(OP.GTE)
-    __lshift__ = _e(OP.IN)
     __rshift__ = _e(OP.IS)
     __mod__ = _e(OP.LIKE)
     __pow__ = _e(OP.ILIKE)
@@ -1215,6 +1214,7 @@ class ColumnBase(Node):
             else:
                 rhs_new.append(n)
         return Expression(self, OP.IN, rhs_new)
+    __lshift__ = in_
     def startswith(self, rhs):
         if isinstance(rhs, Node):
             rhs = Expression(rhs, OP.CONCAT, '%')
