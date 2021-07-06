@@ -1185,7 +1185,6 @@ class ColumnBase(Node):
 
     bin_and = _e(OP.BIN_AND)
     bin_or = _e(OP.BIN_OR)
-    in_ = _e(OP.IN)
     not_in = _e(OP.NOT_IN)
     regexp = _e(OP.REGEXP)
 
@@ -1206,6 +1205,16 @@ class ColumnBase(Node):
         else:
             rhs = self._escape_like_expr(rhs, '%%%s%%')
         return Expression(self, OP.ILIKE, rhs)
+    def in_(self, rhs):
+        if not isinstance(rhs, multi_types):
+            return Expression(self, OP.IN, rhs)
+        rhs_new = []
+        for n in rhs: # Ensure that the proper converter is celled on each element
+            if isinstance(n, multi_types):
+                rhs_new.append(self.db_value(n))
+            else:
+                rhs_new.append(n)
+        return Expression(self, OP.IN, rhs_new)
     def startswith(self, rhs):
         if isinstance(rhs, Node):
             rhs = Expression(rhs, OP.CONCAT, '%')
@@ -1475,15 +1484,6 @@ class Expression(ColumnBase):
             op_in = self.op == OP.IN or self.op == OP.NOT_IN
             if op_in and ctx.as_new().parse(self.rhs)[0] == '()':
                 return ctx.literal('0 = 1' if self.op == OP.IN else '1 = 1')
-            elif op_in and isinstance(self.rhs, multi_types):
-                # Make sure not to greedily unpack the RHS
-                rhs_new = []
-                for n in self.rhs:
-                    if isinstance(n, multi_types):
-                        rhs_new.append(Value(n, unpack=False))
-                    else:
-                        rhs_new.append(n)
-                self.rhs = rhs_new
 
             return (ctx
                     .sql(self.lhs)
